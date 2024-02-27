@@ -64,6 +64,9 @@ class HarnessTaskWrapper:
     def upload_tasks(self, experiment_name: str):
         raise NotImplementedError()
 
+    def get_task_dict(self):
+        raise NotImplementedError
+
 
 if __name__ == "__main__":
     task = HarnessTaskWrapper(tasks=["mmlu"])
