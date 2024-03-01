@@ -3,7 +3,11 @@ import sys
 import logging
 from typing import List, Optional, Union
 from lm_eval import utils
-from lm_eval.tasks import TaskManager, include_path, initialize_tasks
+from lm_eval.tasks import TaskManager, get_task_dict
+from lm_eval.utils import (
+    eval_logger,
+    run_task_tests,
+)
 
 
 class HarnessTaskWrapper:
@@ -73,8 +77,45 @@ class HarnessTaskWrapper:
         """Make a huggingface dataset into a task"""
         raise NotImplementedError
 
-    def get_task_dict(self):
-        raise NotImplementedError
+    def validate_and_get_task_dict(self) -> dict:
+        task_dict = get_task_dict(self.tasks, self.task_manager)
+
+        for task_name in task_dict.keys():
+            task_obj = task_dict[task_name]
+            if isinstance(task_obj, tuple):
+                _, task_obj = task_obj
+                if task_obj is None:
+                    continue
+
+            if task_obj.get_config("output_type") == "generate_until":
+                if self.config.gen_kwargs is not None:
+                    task_obj.set_config(
+                        key="generation_kwargs",
+                        value=self.config.gen_kwargs,
+                        update=True,
+                    )
+
+                if self.config.predict_only:
+                    eval_logger.info(
+                        f"Processing {task_name} in output-only mode. Metrics will not be calculated!"
+                    )
+                    # we have to change the class properties post-hoc. This is pretty hacky.
+                    task_obj.override_metric(metric_name="bypass")
+
+            if self.config.num_fewshot is not None:
+                if (default_num_fewshot := task_obj.get_config("num_fewshot")) == 0:
+                    eval_logger.info(
+                        f"num_fewshot has been set to 0 for {task_name} in its config. Manual configuration will be ignored."
+                    )
+                else:
+                    eval_logger.warning(
+                        f"Overwriting default num_fewshot of {task_name} from {default_num_fewshot} to {self.config.num_fewshot}"
+                    )
+                    task_obj.set_config(
+                        key="num_fewshot", value=self.config.num_fewshot
+                    )
+        if self.config.check_integrity:
+            run_task_tests(self.tasks)
 
 
 if __name__ == "__main__":
