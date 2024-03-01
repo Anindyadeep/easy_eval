@@ -72,7 +72,10 @@ class HarnessModelWrapper:
         print("=> Done")
 
     def evaluate(
-        self, tasks: List[str], config: Optional[EvaluatorConfig] = EvaluatorConfig()
+        self,
+        tasks: List[str],
+        config: Optional[EvaluatorConfig] = EvaluatorConfig(),
+        show_results_terminal: Optional[bool] = False,
     ):
         self._initialise_evaluation(tasks=tasks)
 
