@@ -61,8 +61,17 @@ class HarnessTaskWrapper:
 
         return task_names
 
-    def upload_tasks(self, experiment_name: str):
+    def upload_tasks(self, experiment_name: str, provider: str):
+        """Upload a task to providers like huggingface / wandb artifcats"""
         raise NotImplementedError()
+
+    def import_task_from_yaml(self, yaml_file):
+        """Create or import a new task from a yaml file"""
+        raise NotImplementedError
+
+    def import_task_from_huggingface(self, dataset_repo_id: str):
+        """Make a huggingface dataset into a task"""
+        raise NotImplementedError
 
     def get_task_dict(self):
         raise NotImplementedError
