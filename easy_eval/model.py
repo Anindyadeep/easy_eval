@@ -9,8 +9,8 @@ from typing import Optional, List
 
 from lm_eval import evaluator, utils
 from lm_eval.utils import make_table
-from light_lm_eval.tasks import HarnessTaskWrapper
-from light_lm_eval.config import EvaluatorConfig
+from easy_eval.tasks import HarnessTaskWrapper
+from easy_eval.config import EvaluatorConfig
 
 
 # Todo: Make more indepedent component which can evaluate with LLM's output only without requiring LLMs.
@@ -26,7 +26,7 @@ def _handle_non_serializable(o):
         return str(o)
 
 
-class HarnessModelWrapper:
+class HarnessEvaluator:
     def __init__(
         self,
         model_name_or_path: str,
@@ -140,7 +140,7 @@ class HarnessModelWrapper:
                     output_name = "{}_{}".format(
                         re.sub("/|=", "__", evaluation_results.model_args), task_name
                     )
-                    filename = path.joinpath(f"{output_name}.jsonl")
+                    filename = path.joinpath(f"{output_nlight_lm_evalame}.jsonl")
                     samples_dumped = json.dumps(
                         samples[task_name],
                         indent=2,
@@ -149,7 +149,8 @@ class HarnessModelWrapper:
                     )
                     filename.write_text(samples_dumped, encoding="utf-8")
 
-        print(make_table(evaluation_results))
+        if show_results_terminal:
+            print(make_table(evaluation_results))
         if "groups" in evaluation_results:
             print(make_table(evaluation_results, "groups"))
         return evaluation_results
