@@ -1,4 +1,4 @@
-## EasyEval
+# EasyEval
 
 EasyEval is a fully open-source evaluation wrapper that aims to streamline the integration, customization, and expansion of robust evaluation engines like [lm-eval-harness](https://github.com/EleutherAI/lm-evaluation-harness) and [bigcode-eval-harness](https://github.com/bigcode-project/bigcode-evaluation-harness) into existing production-grade or research pipelines effortlessly. It supports over 200 existing datasets and can be easily adapted for custom ones, making it a versatile solution for enhancing evaluation processes.
 
@@ -42,7 +42,7 @@ This library acts as a wrapper to combine both the engines lm-eval-harness (most
 2. Providing interfaces to solve the above problems. 
 3. Cutomization of models / addition of new benchmark datasets. 
 
-# Getting Started and Usage:
+## Getting Started and Usage:
 
 Let's get started to install the library first. To do that open the terminal and make new virtual environment, and intall easyeval. 
 
@@ -50,7 +50,7 @@ Let's get started to install the library first. To do that open the terminal and
 pip install easyeval
 ```
 
-## Usage
+### Usage
 
 The very first version include a simple interface to interact with lm-eval-harness engine. Here is how you can do that. 
 
