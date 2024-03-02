@@ -55,7 +55,7 @@ pip install easyeval
 The very first version include a simple interface to interact with lm-eval-harness engine. Here is how you can do that. 
 
 ```python
-from easy_eval.model import HarnessEvaluator
+from easy_eval import HarnessEvaluator
 from easy_eval.config import EvaluatorConfig
 ```
 
