@@ -4,10 +4,8 @@ import logging
 from typing import List, Optional, Union
 from lm_eval import utils
 from lm_eval.tasks import TaskManager, get_task_dict
-from lm_eval.utils import (
-    eval_logger,
-    run_task_tests,
-)
+from lm_eval.utils import eval_logger
+from lm_eval.evaluator_utils import run_task_tests
 
 
 class HarnessTasks:
