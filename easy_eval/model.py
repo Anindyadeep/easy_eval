@@ -9,7 +9,7 @@ from typing import Optional, List
 
 from lm_eval import evaluator, utils
 from lm_eval.utils import make_table
-from easy_eval.tasks import HarnessTaskWrapper
+from easy_eval.tasks import HarnessTasks
 from easy_eval.config import EvaluatorConfig
 
 
@@ -66,7 +66,7 @@ class HarnessEvaluator:
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
     def _initialise_evaluation(self, tasks: List[str]) -> None:
-        self.task_wrapper = HarnessTaskWrapper(tasks=tasks, verbosity=self.verbosity)
+        self.task_wrapper = HarnessTasks(tasks=tasks, verbosity=self.verbosity)
         self.tasks = self.task_wrapper.load()
         self.eval_logger.info(f"Evaluating for tasks: {self.tasks}")
         print("=> Done")
@@ -140,7 +140,7 @@ class HarnessEvaluator:
                     output_name = "{}_{}".format(
                         re.sub("/|=", "__", evaluation_results.model_args), task_name
                     )
-                    filename = path.joinpath(f"{output_nlight_lm_evalame}.jsonl")
+                    filename = path.joinpath(f"{output_name}.jsonl")
                     samples_dumped = json.dumps(
                         samples[task_name],
                         indent=2,

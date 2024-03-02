@@ -10,7 +10,7 @@ from lm_eval.utils import (
 )
 
 
-class HarnessTaskWrapper:
+class HarnessTasks:
     def __init__(self, tasks: Union[str, List[str]], verbosity: Optional[str] = "INFO"):
         """Initiates the task process by loading all the tasks and the necessary utilities.
 
