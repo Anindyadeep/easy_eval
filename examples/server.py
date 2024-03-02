@@ -8,8 +8,8 @@
 # - /POST: evaluate model
 
 from fastapi import FastAPI
-from easy_eval.model import HarnessEvaluator
-from easy_eval.tasks import HarnessTasks
+from easy_eval.harness.model import HarnessEvaluator
+from easy_eval.harness.tasks import HarnessTasks
 
 class EvaluationServer:
     raise NotImplementedError
