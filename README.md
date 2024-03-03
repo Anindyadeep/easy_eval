@@ -62,7 +62,9 @@ from easy_eval.config import EvaluatorConfig
 Evaluation Config is where you provide your model's generation configuration. You can checkout all the configs [here](/easy_eval/config.py). After this, we instantiate our evaluator. 
 
 ```python
-harness = HarnessEvaluator(model_name_or_path="gpt2", model_backend="huggingface")
+harness = HarnessEvaluator(model_name_or_path="gpt2", model_backend="huggingface", device="cpu")
+
+# For device you can set cpu or cuda, the standard way of setting up devices. 
 ```
 
 `HarnessEvaluator` expects you to provide the `model_backend`. Here are some supported backends:
