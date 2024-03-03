@@ -69,7 +69,6 @@ class HarnessEvaluator:
         self.task_wrapper = HarnessTasks(tasks=tasks, verbosity=self.verbosity)
         self.tasks = self.task_wrapper.load()
         self.eval_logger.info(f"Evaluating for tasks: {self.tasks}")
-        print("=> Done")
 
     def evaluate(
         self,
@@ -97,7 +96,7 @@ class HarnessEvaluator:
                 path.mkdir(parents=True, exist_ok=True)
                 output_path_file = path.joinpath("results.json")
 
-        print(f"=> Starting to evaluate on tasks: {self.tasks}")
+        self.eval_logger.info(f"=> Starting to evaluate on tasks: {self.tasks}")
         evaluation_results = evaluator.simple_evaluate(
             model=self.llm,
             tasks=self.tasks,
