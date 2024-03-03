@@ -112,11 +112,6 @@ class HarnessEvaluator:
             write_out=config.write_out,
             log_samples=config.log_samples,
             gen_kwargs=config.gen_kwargs,
-            task_manager=self.task_wrapper.task_manager,
-            predict_only=config.predict_only,
-            random_seed=config.seed,
-            numpy_random_seed=config.numpy_seed,
-            torch_random_seed=config.torch_seed,
         )
 
         # Todo: Need wandb logging
