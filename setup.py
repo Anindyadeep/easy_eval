@@ -20,7 +20,7 @@ def read(*paths, **kwargs):
 
 setup(
     name='easy_evaluator',
-    version='0.0.1',
+    version='0.0.2',
     description='A library for easy evaluation of language models',
     author='Anindyadeep',
     author_email='proanindyadeep@gmail.com',
