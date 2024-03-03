@@ -50,12 +50,3 @@ class EvaluatorConfig(BaseModel):
     verbosity: str = Field(
         "INFO", description="Log error when tasks are not registered."
     )
-
-    seed: Optional[int] = Field(default=0)
-    numpy_seed: Optional[int] = Field(default=1234)
-    torch_seed: Optional[int] = Field(default=1234)
-
-    predict_only: Optional[bool] = Field(
-        default=False,
-        description="If true only model outputs will be generated and returned. Metrics will not be evaluated",
-    )
