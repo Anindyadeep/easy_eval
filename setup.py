@@ -20,11 +20,12 @@ def read(*paths, **kwargs):
 
 setup(
     name='easy_evaluator',
-    version='0.0.2',
+    version='{{VERSION_PLACEHOLDER}}',
     description='A library for easy evaluation of language models',
     author='Anindyadeep',
     author_email='proanindyadeep@gmail.com',
     url='https://github.com/Anindyadeep/easy_eval',
+    keywords=['llm', 'evaluation', 'openai'],
     packages=find_packages(),
     install_requires=[
         # List your dependencies here from requirements.txt
