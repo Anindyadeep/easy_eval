@@ -1,5 +1,18 @@
 # EasyEval
 
+# Table of Contents
+
+- [EasyEval](#easyeval)
+- [Table of Contents](#table-of-contents)
+    - [But Why?](#but-why)
+    - [The problem](#the-problem)
+  - [The objective of the Library](#the-objective-of-the-library)
+  - [Getting Started and Usage:](#getting-started-and-usage)
+    - [Usage](#usage)
+  - [Contributing](#contributing)
+  - [Reference and Citations](#reference-and-citations)
+
+
 EasyEval is a fully open-source evaluation wrapper that aims to streamline the integration, customization, and expansion of robust evaluation engines like [lm-eval-harness](https://github.com/EleutherAI/lm-evaluation-harness) and [bigcode-eval-harness](https://github.com/bigcode-project/bigcode-evaluation-harness) into existing production-grade or research pipelines effortlessly. It supports over 200 existing datasets and can be easily adapted for custom ones, making it a versatile solution for enhancing evaluation processes.
 
 ### But Why?
