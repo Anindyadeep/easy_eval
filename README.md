@@ -1,7 +1,5 @@
 # EasyEval
 
-# Table of Contents
-
 - [EasyEval](#easyeval)
 - [Table of Contents](#table-of-contents)
     - [But Why?](#but-why)
