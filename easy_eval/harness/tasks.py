@@ -3,9 +3,12 @@ import sys
 import logging
 from typing import List, Optional, Union
 from lm_eval import utils
-from lm_eval.tasks import TaskManager, get_task_dict
-from lm_eval.utils import eval_logger
-from lm_eval.evaluator_utils import run_task_tests
+from lm_eval.tasks import get_task_dict
+from lm_eval.utils import (
+    eval_logger,
+    run_task_tests,
+)
+import lm_eval.tasks as task_manager 
 
 
 class HarnessTasks:
@@ -25,30 +28,28 @@ class HarnessTasks:
         self.eval_logger.info(f"Verbosity set to {verbosity}")
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-        self.task_manager = TaskManager(verbosity=verbosity, include_path=None)
-
         if tasks is None:
             self.eval_logger.error("Need to specify task to evaluate.")
             sys.exit()
 
         self.tasks = tasks if isinstance(tasks, list) else [tasks]
+        task_manager.initialize_tasks() 
 
     @property
     def list_tasks(self):
         # Todo: Need to give a json where it does an grouping
         self.eval_logger.info(
-            "Available Tasks:\n - {}".format("\n - ".join(self.task_manager.all_tasks))
+            "Available Tasks:\n - {}".format("\n - ".join(task_manager.ALL_TASKS))
         )
         sys.exit()
 
     def load(self):
-        task_names = self.task_manager.match_tasks(self.tasks)
-        for task in [task for task in self.tasks if task not in task_names]:
+        for task in [task for task in self.tasks if task not in self.tasks]:
             if os.path.isfile(task):
                 config = utils.load_yaml_config(task)
-                task_names.append(config)
+                self.tasks.append(config)
         task_missing = [
-            task for task in self.tasks if task not in task_names and "*" not in task
+            task for task in self.tasks if task not in self.tasks and "*" not in task
         ]
 
         if task_missing:
@@ -61,7 +62,7 @@ class HarnessTasks:
                 f"Tasks not found: {missing}. Try `lm-eval --tasks list` for list of available tasks, or '--verbosity DEBUG' to troubleshoot task registration issues."
             )
 
-        return task_names
+        return self.tasks 
 
     def upload_tasks(self, experiment_name: str, provider: str):
         """Upload a task to providers like huggingface / wandb artifcats"""
@@ -76,7 +77,7 @@ class HarnessTasks:
         raise NotImplementedError
 
     def validate_and_get_task_dict(self) -> dict:
-        task_dict = get_task_dict(self.tasks, self.task_manager)
+        task_dict = task_manager.get_task_dict(self.tasks)
 
         for task_name in task_dict.keys():
             task_obj = task_dict[task_name]
