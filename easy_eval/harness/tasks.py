@@ -3,13 +3,13 @@ import sys
 import logging
 from typing import List, Optional, Union
 from lm_eval import utils
-from lm_eval.tasks import get_task_dict
 from lm_eval.utils import (
     eval_logger,
     run_task_tests,
 )
 import lm_eval.tasks as task_manager 
 
+# TODO: Tasks should not be there inside the constructor 
 
 class HarnessTasks:
     def __init__(self, tasks: Union[str, List[str]], verbosity: Optional[str] = "INFO"):
@@ -42,6 +42,71 @@ class HarnessTasks:
             "Available Tasks:\n - {}".format("\n - ".join(task_manager.ALL_TASKS))
         )
         sys.exit()
+    
+    @property
+    def group_tasks(self):
+        grouped_task = {}
+        for task in self.tasks:
+            try:
+                grouped_task[task] = self.get_sub_task(main_task=task)
+            except Exception as error:
+                self.eval_logger.warning(
+                    f"Task: {task} does not exist"
+                    f"Full error: {error}"
+                )
+                continue
+        return grouped_task
+    
+    def get_sub_task(self, main_task: str):
+        assert main_task in task_manager.ALL_TASKS, ValueError(f"Task {main_task} not found")
+        return sorted([task for task in task_manager.ALL_TASKS if task.startswith(main_task)])
+    
+    def get_dataset_from_task(self, task_limit: int, rank: Optional[int] = 0, world_size: Optional[int] = 1):
+        """Fetches the underlined dataset from a given task.
+        
+        NOTE: This function is bit unstable to use and might give error for some task names. 
+        """
+        task_dict = task_manager.get_task_dict(self.tasks)
+        all_task_data = {}
+        
+        for task_name, task in task_dict.items():
+            if type(task) == tuple:
+                _, task = task
+
+            if task is None:
+                continue
+
+            if task_limit is not None:
+                if task.has_test_docs():
+                    task_docs = task.test_docs()
+                elif task.has_validation_docs():
+                    task_docs = task.validation_docs()
+                else:
+                    print("Task has neither test_docs nor validation docs")
+                    continue
+                limit = (
+                    int(len(task_docs) * task_limit)
+                    if task_limit < 1.0
+                    else int(task_limit)
+                )
+            task.build_all_requests(
+                limit=limit, rank=rank, world_size=world_size
+            )
+            task_wise_data = {"doc_id": [], "prompt": [], "target": []}
+
+            for instance in task.instances:
+                task_wise_data["doc_id"].append(instance.doc_id)
+                # FIXME: instance.args[0] is a bit explicit and prompt does not makes sense for tasks like hellaswag.
+                task_wise_data["prompt"].append(instance.args[0])
+                task_wise_data["target"].append(
+                    task.doc_to_target(instance.doc)
+                )
+            all_task_data[task_name] = task_wise_data
+        return all_task_data
+        
+    
+    def filter_tasks(self, filter_by: str):
+        raise NotImplementedError
 
     def load(self):
         for task in [task for task in self.tasks if task not in self.tasks]:
@@ -75,48 +140,3 @@ class HarnessTasks:
     def import_task_from_huggingface(self, dataset_repo_id: str):
         """Make a huggingface dataset into a task"""
         raise NotImplementedError
-
-    def validate_and_get_task_dict(self) -> dict:
-        task_dict = task_manager.get_task_dict(self.tasks)
-
-        for task_name in task_dict.keys():
-            task_obj = task_dict[task_name]
-            if isinstance(task_obj, tuple):
-                _, task_obj = task_obj
-                if task_obj is None:
-                    continue
-
-            if task_obj.get_config("output_type") == "generate_until":
-                if self.config.gen_kwargs is not None:
-                    task_obj.set_config(
-                        key="generation_kwargs",
-                        value=self.config.gen_kwargs,
-                        update=True,
-                    )
-
-                if self.config.predict_only:
-                    eval_logger.info(
-                        f"Processing {task_name} in output-only mode. Metrics will not be calculated!"
-                    )
-                    # we have to change the class properties post-hoc. This is pretty hacky.
-                    task_obj.override_metric(metric_name="bypass")
-
-            if self.config.num_fewshot is not None:
-                if (default_num_fewshot := task_obj.get_config("num_fewshot")) == 0:
-                    eval_logger.info(
-                        f"num_fewshot has been set to 0 for {task_name} in its config. Manual configuration will be ignored."
-                    )
-                else:
-                    eval_logger.warning(
-                        f"Overwriting default num_fewshot of {task_name} from {default_num_fewshot} to {self.config.num_fewshot}"
-                    )
-                    task_obj.set_config(
-                        key="num_fewshot", value=self.config.num_fewshot
-                    )
-        if self.config.check_integrity:
-            run_task_tests(self.tasks)
-
-
-if __name__ == "__main__":
-    task = HarnessTaskWrapper(tasks=["mmlu"])
-    task.list_tasks
