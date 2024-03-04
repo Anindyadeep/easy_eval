@@ -1,60 +1,141 @@
 import os
-import sys
 import logging
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 from lm_eval import utils
-from lm_eval.tasks import get_task_dict
-from lm_eval.utils import (
-    eval_logger,
-    run_task_tests,
-)
-import lm_eval.tasks as task_manager 
+import lm_eval.tasks as task_manager
+from dataclasses import dataclass
+
+task_manager.initialize_tasks()
 
 
-class HarnessTasks:
-    def __init__(self, tasks: Union[str, List[str]], verbosity: Optional[str] = "INFO"):
-        """Initiates the task process by loading all the tasks and the necessary utilities.
+# TODO: Add documentaion on how to use each and every function
+class classproperty:
+    def __init__(self, func):
+        self.func_get = func
 
-        Args:
-            tasks (Union[str, List[str]]): A List of LM Eval Harness Compatible Task Names
-            verbosity (Optional[str], optional): The verbosity level to set. Defaults to "INFO". Set to "DEBUG" to enter debugging mode.
-        """
-        # Todo:
-        # - Set include_path in the main function argument to support additional tasks running from lm_eval_harness backend
-        # - task can also be a dir, and we might require to support that too.
+    def __get__(self, instance, owner):
+        return self.func_get(owner)
 
-        self.eval_logger = utils.eval_logger
-        self.eval_logger.setLevel(getattr(logging, f"{verbosity}"))
-        self.eval_logger.info(f"Verbosity set to {verbosity}")
-        os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-        if tasks is None:
-            self.eval_logger.error("Need to specify task to evaluate.")
-            sys.exit()
+@dataclass
+class HarnessTask:
+    name: str
+    task: Any = None
+    loaded_yaml_file: Optional[str] = None
+    csv_file_name: Optional[str] = None
+    huggingface_dataset_name: Optional[str] = None
 
-        self.tasks = tasks if isinstance(tasks, list) else [tasks]
-        task_manager.initialize_tasks() 
+    _is_loaded_from_file_or_repo: Optional[bool] = False
+    _is_loaded_from_yaml: Optional[bool] = False
+    _is_loaded_from_huggingface_datasets: Optional[bool] = False
+    _is_loaded_from_csv_file: Optional[bool] = False
+
+    def __init__(self, name: str):
+        self.name = name
+        if not self._is_loaded_from_file_or_repo:
+            self.task = name
+
+    def load_from_csv(self, csv_file: str):
+        self._is_loaded_from_file_or_repo = True
+        self._is_loaded_from_csv_file = True
+        raise NotImplementedError
+
+    def load_from_huggingface(self, dataset_repo: str):
+        self._is_loaded_from_file_or_repo = True
+        self._is_loaded_from_huggingface_datasets = True
+        raise NotImplementedError
+
+    def load_from_yaml(self, yaml_config_file: str):
+        # TODO: research more about this since this gives areas to add new files.
+        assert os.path.isfile(yaml_config_file), FileNotFoundError(
+            f"task: {yaml_config_file} is not a file"
+        )
+        config = utils.load_yaml_config(yaml_config=yaml_config_file)
+        self._is_loaded_from_file_or_repo = True
+        self._is_loaded_from_yaml = True
+        self.task = config
 
     @property
-    def list_tasks(self):
-        # Todo: Need to give a json where it does an grouping
-        self.eval_logger.info(
-            "Available Tasks:\n - {}".format("\n - ".join(task_manager.ALL_TASKS))
-        )
-        sys.exit()
+    def get_sub_tasks(self):
+        if not self._is_loaded_from_file_or_repo:
+            assert self.task in task_manager.ALL_TASKS, ValueError(
+                f"Task {self.task} not found"
+            )
 
-    def load(self):
-        for task in [task for task in self.tasks if task not in self.tasks]:
+        sub_tasks = sorted(
+            [task for task in task_manager.ALL_TASKS if task.startswith(self.task)]
+        )
+        return {
+            "main_task": self.task,
+            "num_sub_tasks": len(sub_tasks),
+            "sub_tasks": sub_tasks,
+        }
+
+    def upload_to_hf_hub(self):
+        raise NotImplementedError
+
+    def get_dataset(
+        self, limit: int, rank: Optional[int] = 0, world_size: Optional[int] = 1
+    ):
+        """Fetches the underlined dataset from a given task.
+
+        NOTE: This function is bit unstable to use and might give error for some task names.
+        """
+        task_dict = task_manager.get_task_dict(self.task)
+        all_task_data = {}
+
+        for task_name, task in task_dict.items():
+            if type(task) == tuple:
+                _, task = task
+
+            if task is None:
+                continue
+
+            if limit is not None:
+                if task.has_test_docs():
+                    task_docs = task.test_docs()
+                elif task.has_validation_docs():
+                    task_docs = task.validation_docs()
+                else:
+                    print("Task has neither test_docs nor validation docs")
+                    continue
+                limit = int(len(task_docs) * limit) if limit < 1.0 else int(limit)
+            task.build_all_requests(limit=limit, rank=rank, world_size=world_size)
+            task_wise_data = {"doc_id": [], "prompt": [], "target": []}
+
+            for instance in task.instances:
+                task_wise_data["doc_id"].append(instance.doc_id)
+                # TODO: instance.args[0] is a bit explicit and prompt does not makes sense for tasks like hellaswag.
+                task_wise_data["prompt"].append(instance.args[0])
+                task_wise_data["target"].append(task.doc_to_target(instance.doc))
+            all_task_data[task_name] = task_wise_data
+        return all_task_data
+
+
+class HarnessTaskManager:
+    verbosity = "INFO"
+    eval_logger = utils.eval_logger
+    eval_logger.setLevel(getattr(logging, f"{verbosity}"))
+    eval_logger.info(f"Verbosity set to {verbosity}")
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+    @classproperty
+    def list_all_tasks(cls):
+        all_tasks = task_manager.ALL_TASKS
+        return {"num_tasks": len(all_tasks), "tasks": all_tasks}
+
+    @classmethod
+    def load_tasks(cls, tasks: Union[str, List[str]]):
+        loaded_tasks = []
+        for task in [task for task in tasks if task not in tasks]:
             if os.path.isfile(task):
-                config = utils.load_yaml_config(task)
-                self.tasks.append(config)
-        task_missing = [
-            task for task in self.tasks if task not in self.tasks and "*" not in task
-        ]
+                loaded_tasks.append(HarnessTask(name=task).load_from_yaml(task))
+
+        task_missing = [task for task in tasks if task not in tasks and "*" not in task]
 
         if task_missing:
             missing = ", ".join(task_missing)
-            self.eval_logger.error(
+            cls.eval_logger.error(
                 f"Tasks were not found: {missing}\n"
                 f"{utils.SPACING}Try `lm-eval --tasks list` for list of available tasks",
             )
@@ -62,61 +143,8 @@ class HarnessTasks:
                 f"Tasks not found: {missing}. Try `lm-eval --tasks list` for list of available tasks, or '--verbosity DEBUG' to troubleshoot task registration issues."
             )
 
-        return self.tasks 
-
-    def upload_tasks(self, experiment_name: str, provider: str):
-        """Upload a task to providers like huggingface / wandb artifcats"""
-        raise NotImplementedError()
-
-    def import_task_from_yaml(self, yaml_file):
-        """Create or import a new task from a yaml file"""
-        raise NotImplementedError
-
-    def import_task_from_huggingface(self, dataset_repo_id: str):
-        """Make a huggingface dataset into a task"""
-        raise NotImplementedError
-
-    def validate_and_get_task_dict(self) -> dict:
-        task_dict = task_manager.get_task_dict(self.tasks)
-
-        for task_name in task_dict.keys():
-            task_obj = task_dict[task_name]
-            if isinstance(task_obj, tuple):
-                _, task_obj = task_obj
-                if task_obj is None:
-                    continue
-
-            if task_obj.get_config("output_type") == "generate_until":
-                if self.config.gen_kwargs is not None:
-                    task_obj.set_config(
-                        key="generation_kwargs",
-                        value=self.config.gen_kwargs,
-                        update=True,
-                    )
-
-                if self.config.predict_only:
-                    eval_logger.info(
-                        f"Processing {task_name} in output-only mode. Metrics will not be calculated!"
-                    )
-                    # we have to change the class properties post-hoc. This is pretty hacky.
-                    task_obj.override_metric(metric_name="bypass")
-
-            if self.config.num_fewshot is not None:
-                if (default_num_fewshot := task_obj.get_config("num_fewshot")) == 0:
-                    eval_logger.info(
-                        f"num_fewshot has been set to 0 for {task_name} in its config. Manual configuration will be ignored."
-                    )
-                else:
-                    eval_logger.warning(
-                        f"Overwriting default num_fewshot of {task_name} from {default_num_fewshot} to {self.config.num_fewshot}"
-                    )
-                    task_obj.set_config(
-                        key="num_fewshot", value=self.config.num_fewshot
-                    )
-        if self.config.check_integrity:
-            run_task_tests(self.tasks)
-
-
-if __name__ == "__main__":
-    task = HarnessTaskWrapper(tasks=["mmlu"])
-    task.list_tasks
+        else:
+            for task in tasks:
+                if not os.path.isfile(task):
+                    loaded_tasks.append(HarnessTask(name=task))
+        return loaded_tasks

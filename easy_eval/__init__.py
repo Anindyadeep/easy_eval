@@ -1,7 +1,4 @@
 from easy_eval.harness.model import HarnessEvaluator
-from easy_eval.harness.tasks import HarnessTasks
+from easy_eval.harness.tasks import HarnessTask, HarnessTaskManager
 
-__all__ = [
-    'HarnessTasks',
-    'HarnessEvaluator'
-]
+__all__ = ["HarnessTask", "HarnessEvaluator", "HarnessTaskManager"]
