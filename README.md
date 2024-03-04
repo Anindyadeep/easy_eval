@@ -57,7 +57,7 @@ This library acts as a wrapper to combine both the engines lm-eval-harness (most
 Let's get started to install the library first. To do that open the terminal and make new virtual environment, and intall easyeval. 
 
 ```
-pip install easy_evaluator
+pip install easy-lm-eval
 ```
 
 ### Usage
