@@ -1,7 +1,6 @@
 # EasyEval
 
 - [EasyEval](#easyeval)
-- [Table of Contents](#table-of-contents)
   - [🤔 But Why?](#-but-why)
     - [The problem](#the-problem)
   - [The objective of the Library](#the-objective-of-the-library)
@@ -58,7 +57,7 @@ This library acts as a wrapper to combine both the engines lm-eval-harness (most
 Let's get started to install the library first. To do that open the terminal and make new virtual environment, and intall easyeval. 
 
 ```
-pip install easy-evaluator
+pip install easy_evaluator
 ```
 
 ### Usage
