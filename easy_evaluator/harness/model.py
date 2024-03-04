@@ -9,8 +9,8 @@ from typing import Optional, List, Union
 
 from lm_eval import evaluator, utils
 from lm_eval.utils import make_table
-from easy_eval.config import EvaluatorConfig
-from easy_eval.harness.tasks import HarnessTask
+from easy_evaluator.config import EvaluatorConfig
+from easy_evaluator.harness.tasks import HarnessTask
 
 
 # TODO: Make more indepedent component which can evaluate with LLM's output only without requiring LLMs. (do we even require this?)
