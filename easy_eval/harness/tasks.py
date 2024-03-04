@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 from lm_eval import utils
 import lm_eval.tasks as task_manager
 from dataclasses import dataclass
@@ -20,15 +20,15 @@ class classproperty:
 @dataclass
 class HarnessTask:
     name: str
-    task = None
-    loaded_yaml_file: Optional[str]
-    csv_file_name: Optional[str]
-    huggingface_dataset_name: Optional[str]
+    task: Any = None
+    loaded_yaml_file: Optional[str] = None
+    csv_file_name: Optional[str] = None
+    huggingface_dataset_name: Optional[str] = None
 
-    _is_loaded_from_file_or_repo: Optional[bool]
-    _is_loaded_from_yaml: Optional[bool]
-    _is_loaded_from_huggingface_datasets: Optional[bool]
-    _is_loaded_from_csv_file: Optional[bool]
+    _is_loaded_from_file_or_repo: Optional[bool] = False
+    _is_loaded_from_yaml: Optional[bool] = False
+    _is_loaded_from_huggingface_datasets: Optional[bool] = False
+    _is_loaded_from_csv_file: Optional[bool] = False
 
     def __init__(self, name: str):
         self.name = name
@@ -57,7 +57,7 @@ class HarnessTask:
 
     @property
     def get_sub_tasks(self):
-        if not self.is_loaded_from_yaml:
+        if not self._is_loaded_from_file_or_repo:
             assert self.task in task_manager.ALL_TASKS, ValueError(
                 f"Task {self.task} not found"
             )
