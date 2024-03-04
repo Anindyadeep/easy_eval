@@ -5,16 +5,15 @@ import logging
 import numpy as np
 import importlib
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from lm_eval import evaluator, utils
 from lm_eval.utils import make_table
-from easy_eval.harness.tasks import HarnessTasks
 from easy_eval.config import EvaluatorConfig
+from easy_eval.harness.tasks import HarnessTask
 
 
-# Todo: Make more indepedent component which can evaluate with LLM's output only without requiring LLMs.
-# Todo: Find and make as many detachable components as possible
+# TODO: Make more indepedent component which can evaluate with LLM's output only without requiring LLMs. (do we even require this?)
 
 
 def _handle_non_serializable(o):
@@ -65,18 +64,17 @@ class HarnessEvaluator:
         self.eval_logger.info(f"Verbosity set to {verbosity}")
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-    def _initialise_evaluation(self, tasks: List[str]) -> None:
-        self.task_wrapper = HarnessTasks(tasks=tasks, verbosity=self.verbosity)
-        self.tasks = self.task_wrapper.load()
-        self.eval_logger.info(f"Evaluating for tasks: {self.tasks}")
-
     def evaluate(
         self,
-        tasks: List[str],
+        tasks: Union[List[str], HarnessTask],
         config: Optional[EvaluatorConfig] = EvaluatorConfig(),
         show_results_terminal: Optional[bool] = False,
     ):
-        self._initialise_evaluation(tasks=tasks)
+
+        self.tasks = [
+            task.task if isinstance(task, HarnessTask) else task for task in tasks
+        ]
+        self.eval_logger.info(f"Evaluating for tasks: {tasks}")
 
         if config.output_path:
             path = Path(config.output_path)
