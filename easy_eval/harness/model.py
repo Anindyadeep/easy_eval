@@ -130,7 +130,12 @@ class HarnessEvaluator:
             if config.log_samples:
                 for task_name, config in evaluation_results["configs"].items():
                     output_name = "{}_{}".format(
-                        re.sub("/|=", "__", evaluation_results.model_args), task_name
+                        re.sub(
+                            "/|=",
+                            "__",
+                            evaluation_results["config"]["model_args"] or "",
+                        ),
+                        task_name,
                     )
                     filename = path.joinpath(f"{output_name}.jsonl")
                     samples_dumped = json.dumps(
