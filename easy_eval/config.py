@@ -50,3 +50,15 @@ class EvaluatorConfig(BaseModel):
     verbosity: str = Field(
         "INFO", description="Log error when tasks are not registered."
     )
+
+    random_seed: Optional[int] = Field(
+        default=0, description="Random seed"
+    )
+    
+    numpy_random_seed: Optional[int] = Field(
+        default=1234, description="Numpy random seed"
+    )
+    
+    torch_random_seed: Optional[int] = Field(
+        default=1234, description="Torch random seed"
+    )
