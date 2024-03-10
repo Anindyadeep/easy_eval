@@ -10,7 +10,6 @@ from lm_eval.utils import eval_logger
 from easy_eval.config import EvaluatorConfig
 from easy_eval.harness.tasks import HarnessTask
 from easy_eval.harness.utils import (
-    _handle_non_serializable,
     _build_tasks_and_generate,
 )
 
