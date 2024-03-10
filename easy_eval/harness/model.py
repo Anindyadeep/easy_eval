@@ -9,7 +9,10 @@ from lm_eval.utils import eval_logger
 
 from easy_eval.config import EvaluatorConfig
 from easy_eval.harness.tasks import HarnessTask
-from easy_eval.harness.utils import _handle_non_serializable, _build_tasks_and_generate
+from easy_eval.harness.utils import (
+    _handle_non_serializable,
+    _build_tasks_and_generate,
+)
 
 
 class HarnessModels:
@@ -18,7 +21,7 @@ class HarnessModels:
         model_name_or_path: str,
         model_backend: str,
         verbosity: Optional[str] = "INFO",
-        config: Optional[EvaluatorConfig] = EvaluatorConfig(), 
+        config: Optional[EvaluatorConfig] = EvaluatorConfig(),
         **kwargs,
     ) -> None:
         """Harness Models are the LLMs running on various inference engines but strictly compatible with lm-eval-harness's ecosystem"""
@@ -44,20 +47,19 @@ class HarnessModels:
             ),
             _model_classfile_mapper[model_backend][1],
         )
-        
+
         self.config = config
         model = _llm_module(model_name_or_path, **kwargs)
-        
+
         if self.config.use_cache is not None:
             self.lm = lm_eval.api.model.CachingLM(
                 model, self.config.use_cache + "_rank" + str(model.rank) + ".db"
-            )    
+            )
             eval_logger.info(
                 f"Using cache at {self.use_cache + '_rank' + str(model.rank) + '.db'}"
             )
         else:
-            self.lm = model 
-        
+            self.lm = model
 
         # other stuffs
         self.verbosity = verbosity
@@ -65,15 +67,21 @@ class HarnessModels:
         self.eval_logger.setLevel(getattr(logging, f"{verbosity}"))
         self.eval_logger.info(f"Verbosity set to {verbosity}")
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    
-    def generate(
-        self, 
-        tasks: Union[List[str], HarnessTask], 
-        return_task_metadata: bool = False
-    ) -> List[str]:
-        
-        responses, task_dict, task_metadata = _build_tasks_and_generate(
-            tasks=tasks, lm=self.lm, limit=self.config.limit, write_out=self.config.write_out
-        )
-        return (responses, task_dict, task_metadata) if return_task_metadata else responses
 
+    def generate(
+        self,
+        tasks: Union[List[str], HarnessTask],
+        return_task_metadata: bool = False,
+    ) -> List[str]:
+
+        responses, task_dict, task_metadata = _build_tasks_and_generate(
+            tasks=tasks,
+            lm=self.lm,
+            limit=self.config.limit,
+            write_out=self.config.write_out,
+        )
+        return (
+            (responses, task_dict, task_metadata)
+            if return_task_metadata
+            else responses
+        )

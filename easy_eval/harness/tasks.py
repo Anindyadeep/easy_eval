@@ -2,14 +2,15 @@ import os
 import logging
 from typing import List, Optional, Union, Any
 
-import torch 
-import lm_eval 
+import torch
+import lm_eval
 from lm_eval import utils
 import lm_eval.tasks as task_manager
 from dataclasses import dataclass
-from lm_eval.utils import  eval_logger
+from lm_eval.utils import eval_logger
 
 import collections
+
 task_manager.initialize_tasks()
 
 
@@ -68,7 +69,11 @@ class HarnessTask:
             )
 
         sub_tasks = sorted(
-            [task for task in task_manager.ALL_TASKS if task.startswith(self.task)]
+            [
+                task
+                for task in task_manager.ALL_TASKS
+                if task.startswith(self.task)
+            ]
         )
         return {
             "main_task": self.task,
@@ -104,15 +109,21 @@ class HarnessTask:
                 else:
                     print("Task has neither test_docs nor validation docs")
                     continue
-                limit = int(len(task_docs) * limit) if limit < 1.0 else int(limit)
-            task.build_all_requests(limit=limit, rank=rank, world_size=world_size)
+                limit = (
+                    int(len(task_docs) * limit) if limit < 1.0 else int(limit)
+                )
+            task.build_all_requests(
+                limit=limit, rank=rank, world_size=world_size
+            )
             task_wise_data = {"doc_id": [], "prompt": [], "target": []}
 
             for instance in task.instances:
                 task_wise_data["doc_id"].append(instance.doc_id)
                 # TODO: instance.args[0] is a bit explicit and prompt does not makes sense for tasks like hellaswag.
                 task_wise_data["prompt"].append(instance.args[0])
-                task_wise_data["target"].append(task.doc_to_target(instance.doc))
+                task_wise_data["target"].append(
+                    task.doc_to_target(instance.doc)
+                )
             all_task_data[task_name] = task_wise_data
         return all_task_data
 
@@ -136,7 +147,9 @@ class HarnessTaskManager:
             if os.path.isfile(task):
                 loaded_tasks.append(HarnessTask(name=task).load_from_yaml(task))
 
-        task_missing = [task for task in tasks if task not in tasks and "*" not in task]
+        task_missing = [
+            task for task in tasks if task not in tasks and "*" not in task
+        ]
 
         if task_missing:
             missing = ", ".join(task_missing)
@@ -151,16 +164,17 @@ class HarnessTaskManager:
 
     @classmethod
     def get_task_dict(
-        cls, 
-        tasks: Union[List[str], List[HarnessTask]], 
-        num_fewshot: Optional[int] = None, 
+        cls,
+        tasks: Union[List[str], List[HarnessTask]],
+        num_fewshot: Optional[int] = None,
         gen_kwargs: Optional[dict] = None,
     ):
         tasks = [
-            task.task if isinstance(task, HarnessTask) else task for task in tasks
+            task.task if isinstance(task, HarnessTask) else task
+            for task in tasks
         ]
         task_dict = lm_eval.tasks.get_task_dict(tasks)
-        
+
         for task_name in task_dict.keys():
             task_obj = task_dict[task_name]
             if isinstance(task_obj, tuple):
@@ -169,7 +183,10 @@ class HarnessTaskManager:
                     continue
 
             config = task_obj._config
-            if config["output_type"] == "generate_until" and gen_kwargs is not None:
+            if (
+                config["output_type"] == "generate_until"
+                and gen_kwargs is not None
+            ):
                 config["generation_kwargs"].update(gen_kwargs)
 
             if num_fewshot is not None:
@@ -188,16 +205,16 @@ class HarnessTaskManager:
 
                     task_obj._config["num_fewshot"] = num_fewshot
         return task_dict
-    
+
     @classmethod
     def build_task_requests(
-        cls, 
+        cls,
         lm: Any,
-        task_dict: dict, 
-        limit: int = None, 
+        task_dict: dict,
+        limit: int = None,
         write_out: bool = False,
     ):
-        """Builds request and metadata from task dict 
+        """Builds request and metadata from task dict
         Here is what the metadata contains info about:
             results: stores the final result for each task, for each metric/filter pair.
             versions: tracks each task's version.
@@ -211,21 +228,21 @@ class HarnessTaskManager:
             task_hierarchy: stores the hierarchy to do proper ordering.
             num_fewshot: stores the num-fewshot value per task.
         Returns:
-            task_dict, metadata 
+            task_dict, metadata
         """
         metadata = {
-            "results":  collections.defaultdict(dict),
+            "results": collections.defaultdict(dict),
             "versions": collections.defaultdict(dict),
-            "configs":  collections.defaultdict(dict),
-            "samples":  collections.defaultdict(list),
+            "configs": collections.defaultdict(dict),
+            "samples": collections.defaultdict(list),
             "requests": collections.defaultdict(list),
             "results_agg": collections.defaultdict(dict),
             "groups_agg": collections.defaultdict(dict),
             "padding_requests": collections.defaultdict(int),
             "task_hierarchy": collections.defaultdict(list),
-            "num_fewshot": collections.defaultdict(int)
+            "num_fewshot": collections.defaultdict(int),
         }
-        
+
         for task_name, task in task_dict.items():
             if isinstance(task, tuple):
                 group_name, task = task
@@ -234,29 +251,32 @@ class HarnessTaskManager:
             else:
                 group_name = None
                 metadata["task_hierarchy"][task_name] = []
-            
+
             if task is None:
                 continue
-            
+
             metadata["versions"][task_name] = task.VERSION
             metadata["configs"][task_name] = dict(task.dump_config())
-            
+
             if "num_fewshot" in metadata["configs"][task_name]:
                 n_shot = metadata["configs"][task_name]["num_fewshot"]
             else:
                 n_shot = 0
             metadata["num_fewshot"][task_name] = n_shot
-        
-        
+
             if "task_alias" in metadata["configs"][task_name]:
-                metadata["results"][task_name]["alias"] = metadata["configs"][task_name]["task_alias"]
+                metadata["results"][task_name]["alias"] = metadata["configs"][
+                    task_name
+                ]["task_alias"]
 
             if (
                 ("group_alias" in metadata["configs"][task_name])
                 and (group_name not in metadata["results"])
                 and (group_name is not None)
             ):
-                metadata["results"][group_name]["alias"] = metadata["configs"][task_name]["group_alias"]
+                metadata["results"][group_name]["alias"] = metadata["configs"][
+                    task_name
+                ]["group_alias"]
 
             if limit is not None:
                 if task.has_test_docs():
@@ -264,15 +284,21 @@ class HarnessTaskManager:
                 elif task.has_validation_docs():
                     task_docs = task.validation_docs()
                 else:
-                    raise RuntimeError("Task has neither test_docs nor validation_docs")
-                limit = int(len(task_docs) * limit) if limit < 1.0 else int(limit)
+                    raise RuntimeError(
+                        "Task has neither test_docs nor validation_docs"
+                    )
+                limit = (
+                    int(len(task_docs) * limit) if limit < 1.0 else int(limit)
+                )
 
-            task.build_all_requests(limit=limit, rank=lm.rank, world_size=lm.world_size)
+            task.build_all_requests(
+                limit=limit, rank=lm.rank, world_size=lm.world_size
+            )
 
             eval_logger.debug(
                 f"Task: {task_name}; number of requests on this rank: {len(task.instances)}"
             )
-            
+
             if write_out:
                 for inst in task.instances:
                     if inst.doc_id < 1:
@@ -281,19 +307,25 @@ class HarnessTaskManager:
                             f"\n{inst.args[0]}\n(end of prompt on previous line)\ntarget string or answer choice index (starting on next line):\n{task.doc_to_target(inst.doc)}\n(end of target on previous line)"
                         )
                         eval_logger.info(f"Request: {str(inst)}")
-            
+
             for instance in task.instances:
                 reqtype = instance.request_type
                 metadata["requests"][reqtype].append(instance)
-            
+
             if lm.world_size > 1:
-                instances_rnk = torch.tensor(len(task._instances), device=lm.device)
+                instances_rnk = torch.tensor(
+                    len(task._instances), device=lm.device
+                )
                 gathered_item = (
-                    lm.accelerator.gather(instances_rnk).cpu().detach().numpy().tolist()
+                    lm.accelerator.gather(instances_rnk)
+                    .cpu()
+                    .detach()
+                    .numpy()
+                    .tolist()
                 )
 
                 # compute number of pseudobatches to pad with (FSDP/DDP require even batches among ranks)
                 numpad = max(gathered_item) - gathered_item[lm.rank]
                 metadata["padding_requests"][task.OUTPUT_TYPE] += numpad
-            
-        return task_dict, metadata 
+
+        return task_dict, metadata
