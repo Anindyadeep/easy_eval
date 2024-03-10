@@ -9,9 +9,7 @@ from lm_eval.utils import simple_parse_args_string, eval_logger, get_git_commit_
 from easy_eval.config import EvaluatorConfig
 from easy_eval.harness.tasks import HarnessTask, HarnessTaskManager
 from easy_eval.harness.model import HarnessModels
-from easy_eval.harness.utils import harness_postprocessor, _build_tasks_and_generate
-
-# TODO: Add good documentation for each of the function     
+from easy_eval.harness.utils import harness_postprocessor, _build_tasks_and_generate   
         
 
 class HarnessEvaluator:
@@ -55,6 +53,8 @@ class HarnessEvaluator:
             metadata: (dict): Metadata consists for the task information 
             gen_kwargs (Optional[Union[str, dict]], optional): generation kwargs for the model. Defaults to None.
             bootstrap_iters (Optional[int], optional): Defaults to 100000.
+        
+        Note: In order to use this method, you need to set `return_task_metadata` to True from HarnessModels generate() method
 
         Returns:
             dict: Results for each of the tasks 
